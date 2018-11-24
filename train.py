@@ -1,0 +1,184 @@
+from keras.engine import Input
+from keras.models import Model
+from keras.callbacks import ModelCheckpoint, TensorBoard
+import keras.backend as K
+import os
+from models.model_tiny_yolov1 import model_tiny_yolov1
+from data import data
+from callback import callback
+
+
+def xywh2minmax(xy, wh):
+    xy_min = xy - wh / 2
+    xy_max = xy + wh / 2
+
+    return xy_min, xy_max
+
+
+def iou(pred_mins, pred_maxes, true_mins, true_maxes):
+    intersect_mins = K.maximum(pred_mins, true_mins)
+    intersect_maxes = K.minimum(pred_maxes, true_maxes)
+    intersect_wh = K.maximum(intersect_maxes - intersect_mins, 0.)
+    intersect_areas = intersect_wh[..., 0] * intersect_wh[..., 1]
+
+    pred_wh = pred_maxes - pred_mins
+    true_wh = true_maxes - true_mins
+    pred_areas = pred_wh[..., 0] * pred_wh[..., 1]
+    true_areas = true_wh[..., 0] * true_wh[..., 1]
+
+    union_areas = pred_areas + true_areas - intersect_areas
+    iou_scores = intersect_areas / union_areas
+
+    return iou_scores
+
+
+def yolo_head(feats):
+    # Dynamic implementation of conv dims for fully convolutional model.
+    conv_dims = K.shape(feats)[1:3]  # assuming channels last
+    # In YOLO the height index is the inner most iteration.
+    conv_height_index = K.arange(0, stop=conv_dims[0])
+    conv_width_index = K.arange(0, stop=conv_dims[1])
+    conv_height_index = K.tile(conv_height_index, [conv_dims[1]])
+
+    # TODO: Repeat_elements and tf.split doesn't support dynamic splits.
+    # conv_width_index = K.repeat_elements(conv_width_index, conv_dims[1], axis=0)
+    conv_width_index = K.tile(
+        K.expand_dims(conv_width_index, 0), [conv_dims[0], 1])
+    conv_width_index = K.flatten(K.transpose(conv_width_index))
+    conv_index = K.transpose(K.stack([conv_height_index, conv_width_index]))
+    conv_index = K.reshape(conv_index, [1, conv_dims[0], conv_dims[1], 1, 2])
+    conv_index = K.cast(conv_index, K.dtype(feats))
+
+    conv_dims = K.cast(K.reshape(conv_dims, [1, 1, 1, 1, 2]), K.dtype(feats))
+
+    box_xy = (feats[..., :2] + conv_index) / conv_dims * 448
+    box_wh = feats[..., 2:4] * 448
+
+    return box_xy, box_wh
+
+
+def yolo_loss(y_true, y_pred):
+    label_class = y_true[..., :20]  # ? * 7 * 7 * 20
+    label_box = y_true[..., 20:24]  # ? * 7 * 7 * 4
+    response_mask = y_true[..., 24]  # ? * 7 * 7
+    response_mask = K.expand_dims(response_mask)  # ? * 7 * 7 * 1
+
+    predict_class = y_pred[..., :20]  # ? * 7 * 7 * 20
+    predict_trust = y_pred[..., 20:22]  # ? * 7 * 7 * 2
+    predict_box = y_pred[..., 22:]  # ? * 7 * 7 * 8
+    
+    _label_box = K.reshape(label_box, [-1, 1, 1, 49, 4])
+    _predict_box = K.reshape(predict_box, [-1, 7, 7, 2, 4])
+
+    label_xy, label_wh = yolo_head(_label_box)  # ? * 1 * 1 * 49 * 2, ? * 1 * 1 * 49 * 2
+    label_xy = K.expand_dims(label_xy, 3)  # ? * 1 * 1 * 1 * 49 * 2
+    label_wh = K.expand_dims(label_wh, 3)  # ? * 1 * 1 * 1 * 49 * 2
+    label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 1 * 1 * 1 * 49 * 2, ? * 1 * 1 * 1 * 49 * 2
+
+    predict_xy, predict_wh = yolo_head(_predict_box)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+    predict_xy = K.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
+    predict_wh = K.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
+    predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
+
+    iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 49
+    best_ious = K.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
+    best_box = K.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
+
+    box_mask = K.cast(best_ious >= best_box, K.dtype(best_ious))  # ? * 7 * 7 * 2
+
+    no_object_loss = 0.5 * (1 - box_mask * response_mask) * K.square(0 - predict_trust)
+    object_loss = box_mask * response_mask * K.square(1 - predict_trust)
+    confidence_loss = no_object_loss + object_loss
+    confidence_loss = K.sum(confidence_loss)
+
+    class_loss = response_mask * K.square(label_class - predict_class)
+    class_loss = K.sum(class_loss)
+
+    _label_box = K.reshape(label_box, [-1, 7, 7, 1, 4])
+    _predict_box = K.reshape(predict_box, [-1, 7, 7, 2, 4])
+
+    label_xy, label_wh = yolo_head(_label_box)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+    predict_xy, predict_wh = yolo_head(_predict_box)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+
+    box_mask = K.expand_dims(box_mask)
+    response_mask = K.expand_dims(response_mask)
+
+    box_loss = 5 * box_mask * response_mask * K.square((label_xy - predict_xy) / 448)
+    box_loss += 5 * box_mask * response_mask * K.square((K.sqrt(label_wh) - K.sqrt(predict_wh)) / 448)
+    box_loss = K.sum(box_loss)
+
+    loss = confidence_loss + class_loss + box_loss
+
+    return loss
+
+
+def _main():
+    epochs = 20
+    batch_size = 32
+
+    input_shape = (448, 448, 3)
+    inputs = Input(input_shape)
+    yolo_outputs = model_tiny_yolov1(inputs)
+
+    model = Model(inputs=inputs, outputs=yolo_outputs)
+    model.load_weights('hdf5/tiny-yolov1.hdf5', by_name=True)
+    model.compile(loss=yolo_loss, optimizer='adam')
+
+    save_dir = 'checkpoints'
+    weights_path = os.path.join(save_dir, 'weights.hdf5')
+    checkpoint = ModelCheckpoint(
+        weights_path, save_weights_only=True, period=1)
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+
+    if len(os.listdir(save_dir)) == 0:
+        model.load_weights(
+            'hdf5/tiny-yolov1.hdf5', by_name=True)
+    else:
+        model.load_weights(weights_path, by_name=True)
+
+    epoch_file_path = 'checkpoints/epoch.txt'
+    try:
+        with open(epoch_file_path, 'r') as f:
+            now_epoch = int(f.read())
+        epochs -= now_epoch
+    except IOError:
+        print('no train history')
+
+    myCallback = callback.MyCallback()
+
+    # log_dir = 'logs'
+    # tbCallBack = TensorBoard(log_dir=log_dir,  # log 目录
+    #                          histogram_freq=0,  # 按照何等频率（epoch）来计算直方图，0为不计算
+    #                          batch_size=batch_size,  # 用多大量的数据计算直方图
+    #                          write_graph=True,  # 是否存储网络结构图
+    #                          write_grads=True,  # 是否可视化梯度直方图
+    #                          write_images=True,  # 是否可视化参数
+    #                          embeddings_freq=0,
+    #                          embeddings_layer_names=None,
+    #                          embeddings_metadata=None)
+    # if not os.path.isdir(log_dir):
+    #     os.makedirs(log_dir)
+
+    # 数据生成器
+    train_generator = data.SequenceData(
+        'D:/Datasets/VOC/Data/train/', input_shape, batch_size=batch_size)
+    validation_generator = data.SequenceData(
+        'D:/Datasets/VOC/Data/test/', input_shape, batch_size=batch_size)
+
+    model.fit_generator(
+        train_generator,
+        steps_per_epoch=len(train_generator),
+        epochs=epochs,
+        validation_data=validation_generator,
+        validation_steps=len(validation_generator),
+        use_multiprocessing=False,
+        workers=4,
+        callbacks=[checkpoint, myCallback]
+    )
+
+    model.save_weights('weights_cifar10_vgg16.hdf5')
+
+
+if __name__ == '__main__':
+    _main()
