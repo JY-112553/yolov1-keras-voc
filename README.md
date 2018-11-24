@@ -4,7 +4,7 @@ Keras implementation of YOLOv1 (Tensorflow backend) inspired by [allanzelener/YA
 
 
 ## Download Yolo weights
-Download tiny-yolov1 weights from [here]()
+Download tiny-yolov1 weights from [here](https://pjreddie.com/darknet/yolov1/)
 
 
 ## Convert the model
@@ -12,3 +12,7 @@ Convert the Darknet model to a Keras model
 ```
 python convert.py yolov1-tiny.cfg tiny-yolov1.weights tiny-yolov1.hdf5
 ```
+
+## Train your datasets
+use data/build datasets.py to build datasets
+use train.py to train by your datasets
