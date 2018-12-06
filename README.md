@@ -14,6 +14,7 @@ python convert.py yolov1-tiny.cfg tiny-yolov1.weights tiny-yolov1.hdf5
 ```
 
 ## Train your datasets
+I use pascal-v0c2012 to train, you can download the training, validation datasets from [here](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar) and test datasets from [here](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtest_11-May-2012.tar)
 use data/build datasets.py to build datasets
 
 use train.py to train by your datasets
