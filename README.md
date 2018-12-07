@@ -23,9 +23,11 @@ wget http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
 tar xvf VOCtrainval_11-May-2012.tar
 ```
 
-use data/build datasets.py to build datasets
+Build datasets
 ```
 python data/build datasets.py
 ```
 
-use train.py to train by your datasets
+Train by own datasets
+```
+python train.py 50 32 Datasets 
