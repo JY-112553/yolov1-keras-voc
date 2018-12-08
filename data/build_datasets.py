@@ -1,9 +1,12 @@
+import argparse
 import os
 import numpy as np
 import cv2 as cv
 import xml.etree.ElementTree as ET
 from sklearn.model_selection import train_test_split
 
+parser = argparse.ArgumentParser(description='Build Datasets.')
+parser.add_argument('dir', default='..', help='Datasets dir.')
 
 classes_num = {'aeroplane': 0, 'bicycle': 1, 'bird': 2, 'boat': 3, 'bottle': 4, 'bus': 5,
                'car': 6, 'cat': 7, 'chair': 8, 'cow': 9, 'diningtable': 10, 'dog': 11,
@@ -60,7 +63,6 @@ def parse_xml(xml_file):
 
 def build(x, y, images_path, labels_path):
     N = x.shape[0]
-
     for n in range(N):
         image = x[n]
         label = y[n]
@@ -76,23 +78,13 @@ def build(x, y, images_path, labels_path):
 
 
 def load_data(path):
-    x_path = [os.path.join(path, 'VOC2007/JPEGImages'),
-              os.path.join(path, 'VOC2012/JPEGImages')]
-    y_path = [os.path.join(path, 'VOC2007/Annotations'),
-              os.path.join(path, 'VOC2012/Annotations')]
+    x_path = os.path.join(path, 'VOC2012/JPEGImages')
+    y_path = os.path.join(path, 'VOC2012/Annotations')
 
-    x = []
-    for p in os.listdir(x_path[0]):
-        x.append(cv.imread(os.path.join(x_path[0], p)))
-    for p in os.listdir(x_path[1]):
-        x.append(cv.imread(os.path.join(x_path[1], p)))
+    x = [cv.imread(os.path.join(x_path, p)) for p in os.listdir(x_path)]
     x = np.array(x)
 
-    y = []
-    for p in os.listdir(y_path[0]):
-        y.append(parse_xml(os.path.join(y_path[0], p)))
-    for p in os.listdir(y_path[1]):
-        y.append(parse_xml(os.path.join(y_path[1], p)))
+    y = [parse_xml(os.path.join(y_path, p)) for p in os.listdir(y_path)]
     y = np.array(y)
 
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
@@ -100,29 +92,35 @@ def load_data(path):
     return x_train, y_train, x_test, y_test
 
 
-dir = 'D:/Datasets/VOC/'
-datasets_dir = os.path.join(dir, 'Data')
-if not os.path.isdir(datasets_dir):
-    os.makedirs(datasets_dir)
-train_datasets_dir = os.path.join(datasets_dir, 'train/')
-test_datasets_dir = os.path.join(datasets_dir, 'test/')
-images_path = 'images/'
-labels_path = 'labels/'
-train_images_path = os.path.join(train_datasets_dir, images_path)
-train_labels_path = os.path.join(train_datasets_dir, labels_path)
-test_images_path = os.path.join(test_datasets_dir, images_path)
-test_labels_path = os.path.join(test_datasets_dir, labels_path)
-if not os.path.isdir(train_images_path):
-    os.makedirs(train_images_path)
-if not os.path.isdir(train_labels_path):
-    os.makedirs(train_labels_path)
-if not os.path.isdir(test_images_path):
-    os.makedirs(test_images_path)
-if not os.path.isdir(test_labels_path):
-    os.makedirs(test_labels_path)
+def _main(args):
+    dir = os.path.expanduser(args.dir)
+    datasets_dir = os.path.join(dir, 'DataSets')
+    if not os.path.isdir(datasets_dir):
+        os.makedirs(datasets_dir)
+    train_datasets_dir = os.path.join(datasets_dir, 'train/')
+    val_datasets_dir = os.path.join(datasets_dir, 'val/')
+    images_path = 'images/'
+    labels_path = 'labels/'
+    train_images_path = os.path.join(train_datasets_dir, images_path)
+    train_labels_path = os.path.join(train_datasets_dir, labels_path)
+    val_images_path = os.path.join(val_datasets_dir, images_path)
+    val_labels_path = os.path.join(val_datasets_dir, labels_path)
+    if not os.path.isdir(train_images_path):
+        os.makedirs(train_images_path)
+    if not os.path.isdir(train_labels_path):
+        os.makedirs(train_labels_path)
+    if not os.path.isdir(val_images_path):
+        os.makedirs(val_images_path)
+    if not os.path.isdir(val_labels_path):
+        os.makedirs(val_labels_path)
 
-source_path = os.path.join(dir, 'VOCdevkit')
-x_train, y_train, x_test, y_test = load_data(source_path)
+    source_path = os.path.join(dir, 'VOCdevkit')
+    x_train, y_train, x_val, y_val = load_data(source_path)
 
-build(x_train, y_train, train_images_path, train_labels_path)
-build(x_test, y_test, test_images_path, test_labels_path)
+    build(x_train, y_train, train_images_path, train_labels_path)
+    build(x_val, y_val, val_images_path, val_labels_path)
+
+
+if __name__ == '__main__':
+    _main(parser.parse_args())
+    # _main(parser.parse_args(['D:/Datasets/VOC']))

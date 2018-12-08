@@ -19,8 +19,7 @@ from keras.models import Model
 from keras.regularizers import l2
 
 
-parser = argparse.ArgumentParser(
-    description='Yet Another Darknet To Keras Converter.')
+parser = argparse.ArgumentParser(description='Darknet Yolov1-tiny To Keras Converter.')
 parser.add_argument('config_path', help='Path to Darknet cfg file.')
 parser.add_argument('weights_path', help='Path to Darknet weights file.')
 parser.add_argument('output_path', help='Path to output Keras models file.')
@@ -310,6 +309,6 @@ def _main(args):
 
 
 if __name__ == '__main__':
-    # _main(parser.parse_args())
-    _main(parser.parse_args(
-        ['cfg/yolov1-tiny.cfg', 'weights/tiny-yolov1.weights', 'hdf5/tiny-yolov1.hdf5']))
+    _main(parser.parse_args())
+    # _main(parser.parse_args(
+    #     ['cfg/yolov1-tiny.cfg', 'tiny-yolov1.weights', 'tiny-yolov1.hdf5']))
