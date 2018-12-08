@@ -34,7 +34,7 @@ python train.py 10 32 Datasets
 ```
 
 ## Detect image
-Imagepath is the path to detect.
+Imagepath is the path of image you want to detect.
 ```
 python tiny_yolov1.py tiny-yolov1.hdf5 imagepath
 ```
