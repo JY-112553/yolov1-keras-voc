@@ -12,7 +12,6 @@ parser = argparse.ArgumentParser(description='Train NetWork.')
 parser.add_argument('epochs', help='Num of epochs.')
 parser.add_argument('batch_size', help='Num of batch size.')
 parser.add_argument('datasets_path', help='Path to datasets.')
-parser.add_argument('output_path', help='Path to output Keras models file.')
 
 
 def _main(args):
@@ -86,10 +85,9 @@ def _main(args):
         callbacks=[checkpoint, myCallback, early_stopping]
     )
 
-    output_path = os.path.expanduser(args.output_path)
-    model.save_weights(os.path.join(output_path, 'my-tiny-yolov13.hdf5'))
+    model.save_weights('my-tiny-yolov1.hdf5')
 
 
 if __name__ == '__main__':
     _main(parser.parse_args())
-    # _main(parser.parse_args(['10', '32', 'D:/Datasets/VOC/DataSets', '']))
+    # _main(parser.parse_args(['10', '32', 'D:/Datasets/VOC/DataSets']))
