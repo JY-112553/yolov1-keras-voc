@@ -35,7 +35,7 @@ def _main(args):
     if os.path.exists('checkpoints/weights.hdf5'):
         model.load_weights('checkpoints/weights.hdf5', by_name=True)
     else:
-        model.load_weights('weights/tiny-yolov1.hdf5', by_name=True)
+        model.load_weights('tiny-yolov1.hdf5', by_name=True)
         print('no train history')
 
     # epoch_file_path = 'checkpoints/epoch.txt'
@@ -81,7 +81,7 @@ def _main(args):
         workers=4,
         callbacks=[checkpoint, early_stopping]
     )
-    model.save_weights('weights/my-tiny-yolov1.hdf5')
+    model.save_weights('my-tiny-yolov1.hdf5')
 
 
 if __name__ == '__main__':
