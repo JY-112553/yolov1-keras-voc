@@ -25,12 +25,12 @@ tar xvf VOCtrainval_11-May-2012.tar
 
 Build datasets.
 ```
-python data/build datasets.py
+python voc_annotation.py [Your Datasets Path]
 ```
 
 Train by own datasets.
 ```
-python train.py 10 32 Datasets
+python train.py 100 32 [Your Datasets Path]
 ```
 
 ## Detect image
