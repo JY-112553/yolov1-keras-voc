@@ -177,6 +177,5 @@ def _main(args):
 
 
 if __name__ == '__main__':
-    # _main(parser.parse_args())
-    _main(parser.parse_args(['my-tiny-yolov1.hdf5',
-                             'C:/Users/JY/Desktop/test.jpg']))
+    _main(parser.parse_args())
+    # _main(parser.parse_args(['my-tiny-yolov1.hdf5', 'C:/Users/JY/Desktop/test.jpg']))

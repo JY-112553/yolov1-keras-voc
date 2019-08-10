@@ -310,6 +310,5 @@ def _main(args):
 
 
 if __name__ == '__main__':
-    # _main(parser.parse_args())
-    _main(parser.parse_args(['cfg/yolov1-tiny.cfg', 'weights/tiny-yolov1.weights',
-                             'weights/tiny-yolov1.hdf5']))
+    _main(parser.parse_args())
+    # _main(parser.parse_args(['cfg/yolov1-tiny.cfg', 'weights/tiny-yolov1.weights', 'weights/tiny-yolov1.hdf5']))

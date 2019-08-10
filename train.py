@@ -45,7 +45,6 @@ def _main(args):
     #     epochs -= now_epoch
     # except IOError:
     #     print('no train history')
-
     # myCallback = callback.MyCallback()
 
     early_stopping = EarlyStopping(
@@ -84,27 +83,7 @@ def _main(args):
     )
     model.save_weights('weights/my-tiny-yolov1.hdf5')
 
-    # inputs = Input(input_shape)
-    # yolo_outputs = model_tiny_yolov1(inputs)
-    # model = Model(inputs=inputs, outputs=yolo_outputs)
-    # for i in range(len(model.layers)):
-    #     model.layers[i].trainable = True
-    # model.compile(loss=yolo_loss, optimizer='adam')
-    # model.load_weights('weights/my-tiny-yolov1_stage1.hdf5', by_name=True)
-    #
-    # model.fit_generator(
-    #     train_generator,
-    #     steps_per_epoch=len(train_generator),
-    #     epochs=epochs,
-    #     validation_data=validation_generator,
-    #     validation_steps=len(validation_generator),
-    #     # use_multiprocessing=True,
-    #     # workers=4,
-    #     callbacks=[checkpoint, early_stopping]
-    # )
-    # model.save_weights('weights/my-tiny-yolov1.hdf5')
-
 
 if __name__ == '__main__':
-    # _main(parser.parse_args())
-    _main(parser.parse_args(['30', '32', 'D:/Datasets/VOC/VOCdevkit']))
+    _main(parser.parse_args())
+    # _main(parser.parse_args(['30', '32', 'D:/Datasets/VOC/VOCdevkit']))
