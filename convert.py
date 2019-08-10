@@ -297,6 +297,7 @@ def _main(args):
     # Create and save models.
     model = Model(inputs=all_layers[0], outputs=all_layers[-1])
     print(model.summary())
+
     model.save_weights('{}'.format(output_path))
     print('Saved Keras models to {}'.format(output_path))
     # Check to see if all weights have been read.
@@ -309,6 +310,6 @@ def _main(args):
 
 
 if __name__ == '__main__':
-    _main(parser.parse_args())
-    # _main(parser.parse_args(
-    #     ['cfg/yolov1-tiny.cfg', 'tiny-yolov1.weights', 'tiny-yolov1.hdf5']))
+    # _main(parser.parse_args())
+    _main(parser.parse_args(['cfg/yolov1-tiny.cfg', 'weights/tiny-yolov1.weights',
+                             'weights/tiny-yolov1.hdf5']))

@@ -1,6 +1,7 @@
 from keras.layers import Conv2D, MaxPooling2D, \
     Flatten, Dense, Reshape, LeakyReLU
 from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2
 from keras.engine.topology import Layer
 import keras.backend as K
 
@@ -37,56 +38,55 @@ class Yolo_Reshape(Layer):
 
 
 def model_tiny_yolov1(inputs):
-    x = Conv2D(16, (3, 3), padding='same', use_bias=False,
-               name='convolutional_0', trainable=False)(inputs)
+    x = Conv2D(16, (3, 3), padding='same', name='convolutional_0', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(inputs)
     x = BatchNormalization(name='bnconvolutional_0', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(32, (3, 3), padding='same', use_bias=False,
-               name='convolutional_1', trainable=False)(x)
+    x = Conv2D(32, (3, 3), padding='same', name='convolutional_1', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_1', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(64, (3, 3), padding='same', use_bias=False,
-               name='convolutional_2', trainable=False)(x)
+    x = Conv2D(64, (3, 3), padding='same', name='convolutional_2', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_2', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(128, (3, 3), padding='same', use_bias=False,
-               name='convolutional_3', trainable=False)(x)
+    x = Conv2D(128, (3, 3), padding='same', name='convolutional_3', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_3', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(256, (3, 3), padding='same', use_bias=False,
-               name='convolutional_4', trainable=False)(x)
+    x = Conv2D(256, (3, 3), padding='same', name='convolutional_4', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_4', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(512, (3, 3), padding='same', use_bias=False,
-               name='convolutional_5', trainable=False)(x)
+    x = Conv2D(512, (3, 3), padding='same', name='convolutional_5', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_5', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
-    x = MaxPooling2D((2, 2), strides=(2, 2))(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), padding='same')(x)
 
-    x = Conv2D(1024, (3, 3), padding='same', use_bias=False,
-               name='convolutional_6', trainable=False)(x)
+    x = Conv2D(1024, (3, 3), padding='same', name='convolutional_6', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_6', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
 
-    x = Conv2D(256, (3, 3), padding='same', use_bias=False,
-               name='convolutional_7', trainable=False)(x)
+    x = Conv2D(256, (3, 3), padding='same', name='convolutional_7', use_bias=False,
+               kernel_regularizer=l2(5e-4), trainable=False)(x)
     x = BatchNormalization(name='bnconvolutional_7', trainable=False)(x)
     x = LeakyReLU(alpha=0.1)(x)
 
     x = Flatten()(x)
-    x = Dense(4096, activation='linear', name='my_connected_0')(x)
-    x = LeakyReLU(alpha=0.1)(x)
-    x = Dense(1470, activation='linear', name='my_connected_1')(x)
-    outputs = Yolo_Reshape([7, 7, 30])(x)
+    x = Dense(1470, activation='linear', name='connected_0')(x)
+    # outputs = Reshape((7, 7, 30))(x)
+    outputs = Yolo_Reshape((7, 7, 30))(x)
 
     return outputs

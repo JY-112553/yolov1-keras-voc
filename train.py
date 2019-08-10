@@ -4,7 +4,7 @@ from keras.models import Model
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import os
 from models.model_tiny_yolov1 import model_tiny_yolov1
-from data import data
+from data_sequence import SequenceData
 from yolo.yolo import yolo_loss
 from callback import callback
 
@@ -27,26 +27,26 @@ def _main(args):
 
     save_dir = 'checkpoints'
     weights_path = os.path.join(save_dir, 'weights.hdf5')
-    checkpoint = ModelCheckpoint(
-        weights_path, save_weights_only=True, period=1)
+    checkpoint = ModelCheckpoint(weights_path, monitor='val_loss',
+                                 save_weights_only=True, save_best_only=True)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    if len(os.listdir(save_dir)) == 0:
-        model.load_weights(
-            'tiny-yolov1.hdf5', by_name=True)
+    if os.path.exists('checkpoints/weights.hdf5'):
+        model.load_weights('checkpoints/weights.hdf5', by_name=True)
     else:
-        model.load_weights(weights_path, by_name=True)
-
-    epoch_file_path = 'checkpoints/epoch.txt'
-    try:
-        with open(epoch_file_path, 'r') as f:
-            now_epoch = int(f.read())
-        epochs -= now_epoch
-    except IOError:
+        model.load_weights('weights/tiny-yolov1.hdf5', by_name=True)
         print('no train history')
 
-    myCallback = callback.MyCallback()
+    # epoch_file_path = 'checkpoints/epoch.txt'
+    # try:
+    #     with open(epoch_file_path, 'r') as f:
+    #         now_epoch = int(f.read())
+    #     epochs -= now_epoch
+    # except IOError:
+    #     print('no train history')
+
+    # myCallback = callback.MyCallback()
 
     early_stopping = EarlyStopping(
         monitor='val_loss', min_delta=0, patience=15, verbose=1, mode='auto')
@@ -65,29 +65,46 @@ def _main(args):
     #     os.makedirs(log_dir)
 
     datasets_path = os.path.expanduser(args.datasets_path)
-    datasets_train_path = os.path.join(datasets_path, 'train')
-    datasets_val_path = os.path.join(datasets_path, 'val')
 
     # 数据生成器
-    train_generator = data.SequenceData(
-        datasets_train_path, input_shape, batch_size=batch_size)
-    validation_generator = data.SequenceData(
-        datasets_val_path, input_shape, batch_size=batch_size)
+    train_generator = SequenceData(
+        'train', datasets_path, input_shape, batch_size)
+    validation_generator = SequenceData(
+        'val', datasets_path, input_shape, batch_size)
 
     model.fit_generator(
         train_generator,
         steps_per_epoch=len(train_generator),
-        epochs=epochs,
+        epochs=30,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
-        use_multiprocessing=False,
+        # use_multiprocessing=True,
         workers=4,
-        callbacks=[checkpoint, myCallback, early_stopping]
+        callbacks=[checkpoint, early_stopping]
     )
+    model.save_weights('weights/my-tiny-yolov1.hdf5')
 
-    model.save_weights('my-tiny-yolov1.hdf5')
+    # inputs = Input(input_shape)
+    # yolo_outputs = model_tiny_yolov1(inputs)
+    # model = Model(inputs=inputs, outputs=yolo_outputs)
+    # for i in range(len(model.layers)):
+    #     model.layers[i].trainable = True
+    # model.compile(loss=yolo_loss, optimizer='adam')
+    # model.load_weights('weights/my-tiny-yolov1_stage1.hdf5', by_name=True)
+    #
+    # model.fit_generator(
+    #     train_generator,
+    #     steps_per_epoch=len(train_generator),
+    #     epochs=epochs,
+    #     validation_data=validation_generator,
+    #     validation_steps=len(validation_generator),
+    #     # use_multiprocessing=True,
+    #     # workers=4,
+    #     callbacks=[checkpoint, early_stopping]
+    # )
+    # model.save_weights('weights/my-tiny-yolov1.hdf5')
 
 
 if __name__ == '__main__':
-    _main(parser.parse_args())
-    # _main(parser.parse_args(['10', '32', 'D:/Datasets/VOC/DataSets']))
+    # _main(parser.parse_args())
+    _main(parser.parse_args(['30', '32', 'D:/Datasets/VOC/VOCdevkit']))

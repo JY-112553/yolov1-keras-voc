@@ -60,20 +60,20 @@ def yolo_loss(y_true, y_pred):
     predict_trust = y_pred[..., 20:22]  # ? * 7 * 7 * 2
     predict_box = y_pred[..., 22:]  # ? * 7 * 7 * 8
 
-    _label_box = K.reshape(label_box, [-1, 1, 1, 49, 4])
+    _label_box = K.reshape(label_box, [-1, 7, 7, 1, 4])
     _predict_box = K.reshape(predict_box, [-1, 7, 7, 2, 4])
 
-    label_xy, label_wh = yolo_head(_label_box)  # ? * 1 * 1 * 49 * 2, ? * 1 * 1 * 49 * 2
-    label_xy = K.expand_dims(label_xy, 3)  # ? * 1 * 1 * 1 * 49 * 2
-    label_wh = K.expand_dims(label_wh, 3)  # ? * 1 * 1 * 1 * 49 * 2
-    label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 1 * 1 * 1 * 49 * 2, ? * 1 * 1 * 1 * 49 * 2
+    label_xy, label_wh = yolo_head(_label_box)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+    label_xy = K.expand_dims(label_xy, 3)  # ? * 7 * 7 * 1 * 1 * 2
+    label_wh = K.expand_dims(label_wh, 3)  # ? * 7 * 7 * 1 * 1 * 2
+    label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 7 * 7 * 1 * 1 * 2, ? * 7 * 7 * 1 * 1 * 2
 
     predict_xy, predict_wh = yolo_head(_predict_box)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
     predict_xy = K.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
     predict_wh = K.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
     predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
 
-    iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 49
+    iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
     best_ious = K.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
     best_box = K.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
 
