@@ -1,8 +1,6 @@
 from keras.layers import Conv2D, MaxPooling2D, \
-    Flatten, Dense, Reshape, LeakyReLU
-from keras.layers.normalization import BatchNormalization
+    Flatten, Dense, Reshape, LeakyReLU, BatchNormalization, Layer
 from keras.regularizers import l2
-from keras.engine.topology import Layer
 import keras.backend as K
 
 
