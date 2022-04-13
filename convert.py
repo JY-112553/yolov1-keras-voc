@@ -12,8 +12,7 @@ from collections import defaultdict
 import numpy as np
 from keras import backend as K
 from keras.layers import Input, Conv2D, MaxPooling2D, \
-    Dense, Flatten, Dropout, Reshape, LeakyReLU, ReLU, BatchNormalization
-
+    Dense, Flatten, Dropout, Reshape, LeakyReLU, ReLU, BatchNormalization, LocallyConnected2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 
@@ -288,7 +287,23 @@ def _main(args):
               section.startswith('detection') or
               section.startswith('softmax')):
             pass  # Configs not currently handled during models definition.
+        elif section.startswith('local'):
+            size = int(cfg_parser[section]['size'])
+            stride = int(cfg_parser[section]['stride'])
+            pad = int(cfg_parser[section]['pad'])
+            filters = int(cfg_parser[section]['filters'])
+            prev_layer = LocallyConnected2D(filters = filters, kernel_size=size, strides=stride, padding=pad)(prev_layer)
 
+            if activation == 'linear':
+                all_layers.append(prev_layer)
+            elif activation == 'leaky':
+                act_layer = LeakyReLU(alpha=0.1)(prev_layer)
+                prev_layer = act_layer
+                all_layers.append(act_layer)
+            elif activation == 'relu':
+                act_layer = ReLU()(prev_layer)
+                prev_layer = act_layer
+                all_layers.append(act_layer)
         else:
             raise ValueError(
                 'Unsupported section header type: {}'.format(section))
