@@ -1,5 +1,5 @@
 import argparse
-from keras.engine import Input
+from keras import Input
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import os
@@ -71,10 +71,10 @@ def _main(args):
     validation_generator = SequenceData(
         'val', datasets_path, input_shape, batch_size)
 
-    model.fit_generator(
+    model.fit(
         train_generator,
         steps_per_epoch=len(train_generator),
-        epochs=30,
+        epochs=epochs,
         validation_data=validation_generator,
         validation_steps=len(validation_generator),
         # use_multiprocessing=True,
